@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Morse Code Translator + CW Player</title>
+<style>
+  :root {
+    --bg-main: #05070b;
+    --bg-panel: #10141a;
+    --bg-panel-alt: #151b23;
+    --border-panel: #3a424e;
+    --accent: #ff8c00;
+    --accent-soft: #ffb347;
+    --accent-strong: #c86a00;
+    --text-main: #f4f4f4;
+    --text-dim: #9aa2b3;
+    --btn-bg: #202733;
+    --btn-bg-hover: #2b3443;
+    --btn-border: #ff8c00;
+    --textarea-bg: #05070b;
+    --textarea-border: #3a424e;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    background: var(--bg-main);
+    color: var(--text-main);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 10px 14px;
+    gap: 10px;
+  }
+
+  .toolbar {
+    display: flex;
+    gap: 10px;
+    align-items: stretch;
+  }
+
+  .toolbar-box {
+    background: linear-gradient(to bottom, #151b23, #090c11);
+    border-radius: 6px;
+    border: 1px solid var(--border-panel);
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .toolbar-box.left {
+    flex: 1.4;
+    justify-content: space-between;
+  }
+
+  .toolbar-box.right {
+    flex: 0.9;
+    justify-content: space-between;
+  }
+
+  .control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 150px;
+  }
+
+  .control-label {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    color: var(--text-dim);
+	user-select: none;
+  }
+
+  .control-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .control-value {
+    font-size: 11px;
+    color: var(--accent-soft);
+    min-width: 40px;
+    text-align: right;
+	user-select: none;
+  }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    border-radius: 999px;
+    background: #1b222e;
+    outline: none;
+  }
+
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 1px solid #c86a00;
+    box-shadow: 0 0 4px rgba(255,140,0,0.7);
+    cursor: pointer;
+  }
+
+  input[type="range"]::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 1px solid #c86a00;
+    box-shadow: 0 0 4px rgba(255,140,0,0.7);
+    cursor: pointer;
+  }
+
+  .btn {
+    background: var(--btn-bg);
+    border-radius: 4px;
+    border: 1px solid var(--btn-border);
+    color: var(--accent-soft);
+    font-size: 11px;
+    padding: 6px 10px;
+    cursor: pointer;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    white-space: nowrap;
+	user-select: none;
+  }
+
+  .btn:hover {
+    background: var(--btn-bg-hover);
+  }
+
+  .btn:active {
+    transform: translateY(1px);
+    background: #151c27;
+  }
+
+  .btn-primary {
+    border-color: #555f6f;
+    color: var(--text-dim);
+  }
+
+  .btn-primary:hover {
+    background: var(--btn-bg-hover);
+  }
+
+  .btn-danger {
+    background: var(--btn-bg);
+    border: 1px solid var(--btn-border);
+  }
+
+  .btn-danger:hover {
+    background: var(--btn-bg-hover);
+  }
+
+  .btn-ghost {
+    background: var(--btn-bg);
+  }
+
+  .led-box {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid #3a424e;
+    background: #10141a;
+    min-width: 170px;
+  }
+
+  .led-indicator {
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+    background: #3a2a10;
+    box-shadow: inset 0 0 4px rgba(0,0,0,0.8);
+    transition: background 0.08s linear, box-shadow 0.08s linear;
+  }
+
+  .led-indicator.on {
+    background: #ff8c00;
+    box-shadow:
+      0 0 6px rgba(255,140,0,0.9),
+      0 0 14px rgba(255,140,0,0.7);
+  }
+
+  .led-labels {
+    display: flex;
+    flex-direction: column;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+	user-select: none;
+  }
+
+  .led-labels span strong {
+    color: var(--accent-soft);
+  }
+
+  .play-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+
+  .main-panels {
+    flex: 1;
+    display: flex;
+    gap: 10px;
+    min-height: 0;
+	background: var(--bg-main);
+  }
+
+  .panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    background: var(--bg-panel);
+    border-radius: 8px;
+    border: 1px solid var(--border-panel);
+    box-shadow:
+      0 0 0 1px rgba(0,0,0,0.6),
+      0 10px 30px rgba(0,0,0,0.7);
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 8px 10px;
+    border-bottom: 1px solid #262c36;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #0f141c;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--text-dim);
+	user-select: none;
+  }
+
+  .panel-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+
+  .panel-body {
+    flex: 1;
+    display: flex;
+    padding: 8px;
+    padding-top: 6px;
+  }
+
+  textarea {
+    width: 100%;
+    height: 100%;
+    resize: none;
+    border-radius: 6px;
+    border: 1px solid var(--textarea-border);
+    background: var(--textarea-bg);
+    color: var(--text-main);
+    padding: 10px;
+    font-size: 20px;
+    line-height: 1.4;
+    font-family: "SF Mono", Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+    outline: none;
+  }
+
+  .panel-footer {
+    padding: 6px 10px 8px;
+    border-top: 1px solid #262c36;
+    display: flex;
+    justify-content: flex-end;
+    gap: 6px;
+    background: #10141c;
+  }
+
+  .panel-footer .btn {
+    font-size: 10px;
+    padding: 5px 8px;
+  }
+
+  .hidden-input {
+    display: none;
+  }
+
+  @media (max-width: 1100px) {
+    .toolbar {
+      flex-direction: column;
+    }
+    .toolbar-box.left,
+    .toolbar-box.right {
+      flex: none;
+    }
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="toolbar">
+    <div class="toolbar-box left">
+      <div class="control-group">
+        <div class="control-label">Speed</div>
+        <div class="control-row">
+          <input id="wpmInput" type="range" min="5" max="40" value="20">
+          <div class="control-value"><span id="wpmValue">20</span> wpm</div>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label">Frequency</div>
+        <div class="control-row">
+          <input id="freqInput" type="range" min="300" max="1200" value="650">
+          <div class="control-value"><span id="freqValue">650</span> Hz</div>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label">Volume</div>
+        <div class="control-row">
+          <input id="volumeSlider" type="range" min="0" max="1" step="0.01" value="0.4">
+          <div class="control-value"><span id="volValue">0.40</span></div>
+        </div>
+      </div>
+      <div class="control-group">
+        <div class="control-label">Font size</div>
+        <div class="control-row">
+          <input id="fontSlider" type="range" min="14" max="32" value="22">
+          <div class="control-value"><span id="fontValue">22px</span></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="toolbar-box right">
+      <div class="play-controls">
+        <button id="btnPlayPauseGlobal" class="btn btn-ghost">Play</button>
+        <button id="btnStopGlobal" class="btn btn-primary">Stop</button>
+      </div>
+      <div class="led-box">
+        <div id="led" class="led-indicator"></div>
+        <div class="led-labels">
+          <span><strong>CW</strong> Carrier</span>
+          <span>Key Down Indicator</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-panels">
+    <!-- LEFT: TEXT -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Text &nbsp; (Characters)</div>
+        <div class="panel-buttons">
+          <button id="btnImportText" class="btn btn-primary">Import TXT</button>
+          <button id="btnExportText" class="btn btn-primary">Export TXT</button>
+          <button id="btnCopyText" class="btn btn-ghost">Copy</button>
+          <button id="btnPasteText" class="btn btn-ghost">Paste</button>
+          <button id="btnUndoText" class="btn btn-primary">Undo</button>
+          <button id="btnRedoText" class="btn btn-primary">Redo</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <textarea id="textArea" spellcheck="false" placeholder="Type text here to convert to Morse..."></textarea>
+      </div>
+      <div class="panel-footer">
+        <button id="btnClearText" class="btn">Clear</button>
+        <button id="btnConvertTextToPatterns" class="btn btn-primary">Convert to patterns</button>
+        <button id="btnPlayText" class="btn btn-ghost">Play text</button>
+      </div>
+    </div>
+
+    <!-- RIGHT: PATTERNS -->
+    <div class="panel">
+      <div class="panel-header">
+        <div class="panel-title">Patterns &nbsp; (Dots / Dashes)</div>
+        <div class="panel-buttons">
+          <button id="btnImportPatterns" class="btn btn-primary">Import patterns</button>
+          <button id="btnExportPatterns" class="btn btn-primary">Export patterns</button>
+          <button id="btnCopyPatterns" class="btn btn-ghost">Copy</button>
+          <button id="btnPastePatterns" class="btn btn-ghost">Paste</button>
+          <button id="btnUndoPatterns" class="btn btn-primary">Undo</button>
+          <button id="btnRedoPatterns" class="btn btn-primary">Redo</button>
+        </div>
+      </div>
+      <div class="panel-body">
+        <textarea id="patternArea" spellcheck="false" placeholder="Type Morse patterns here (.- and / for word gaps)..."></textarea>
+      </div>
+      <div class="panel-footer">
+        <button id="btnClearPatterns" class="btn">Clear</button>
+        <button id="btnConvertPatternsToText" class="btn btn-primary">Convert to characters</button>
+        <button id="btnPlayPatterns" class="btn btn-ghost">Play patterns</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Hidden file inputs -->
+<input id="fileInputText" type="file" accept=".txt" class="hidden-input">
+<input id="fileInputPatterns" type="file" accept=".txt" class="hidden-input">
+
+<script>
+  // Morse map
+  const MORSE = {
+    "A": ".-","B":"-...","C":"-.-.","D":"-..","E":".","F":"..-.","G":"--.","H":"....",
+    "I":"..","J":".---","K":"-.-","L":".-..","M":"--","N":"-.","O":"---","P":".--.",
+    "Q":"--.-","R":".-.","S":"...","T":"-","U":"..-","V":"...-","W":".--","X":"-..-",
+    "Y":"-.--","Z":"--..",
+    "0":"-----","1":".----","2":"..---","3":"...--","4":"....-","5":".....","6":"-....","7":"--...","8":"---..","9":"----.",
+    ".":".-.-.-",",":"--..--","?":"..--..","'":".----.","!":"-.-.--","/":"-..-.","(":"-.--.",")":"-.--.-",
+    "&":".-...",":":"---...",";":"-.-.-.","=":"-...-","+":".-.-.","-":"-....-","_":"..--.-","\"":".-..-.",
+    "$":"...-..-","@":".--.-."
+  };
+
+  const REVERSE_MORSE = {};
+  Object.keys(MORSE).forEach(ch => {
+    REVERSE_MORSE[MORSE[ch]] = ch;
+  });
+
+  // DOM
+  const textArea = document.getElementById('textArea');
+  const patternArea = document.getElementById('patternArea');
+  const btnImportText = document.getElementById('btnImportText');
+  const btnExportText = document.getElementById('btnExportText');
+  const btnCopyText = document.getElementById('btnCopyText');
+  const btnPasteText = document.getElementById('btnPasteText');
+  const btnUndoText = document.getElementById('btnUndoText');
+  const btnRedoText = document.getElementById('btnRedoText');
+  const btnClearText = document.getElementById('btnClearText');
+  const btnConvertTextToPatterns = document.getElementById('btnConvertTextToPatterns');
+  const btnPlayText = document.getElementById('btnPlayText');
+
+  const btnImportPatterns = document.getElementById('btnImportPatterns');
+  const btnExportPatterns = document.getElementById('btnExportPatterns');
+  const btnCopyPatterns = document.getElementById('btnCopyPatterns');
+  const btnPastePatterns = document.getElementById('btnPastePatterns');
+  const btnUndoPatterns = document.getElementById('btnUndoPatterns');
+  const btnRedoPatterns = document.getElementById('btnRedoPatterns');
+  const btnClearPatterns = document.getElementById('btnClearPatterns');
+  const btnConvertPatternsToText = document.getElementById('btnConvertPatternsToText');
+  const btnPlayPatterns = document.getElementById('btnPlayPatterns');
+
+  const fileInputText = document.getElementById('fileInputText');
+  const fileInputPatterns = document.getElementById('fileInputPatterns');
+
+  const wpmInput = document.getElementById('wpmInput');
+  const wpmValue = document.getElementById('wpmValue');
+  const freqInput = document.getElementById('freqInput');
+  const freqValue = document.getElementById('freqValue');
+  const volumeSlider = document.getElementById('volumeSlider');
+  const volValue = document.getElementById('volValue');
+  const fontSlider = document.getElementById('fontSlider');
+  const fontValue = document.getElementById('fontValue');
+
+  const btnPlayPauseGlobal = document.getElementById('btnPlayPauseGlobal');
+  const btnStopGlobal = document.getElementById('btnStopGlobal');
+  const led = document.getElementById('led');
+
+  // Audio: prevent multiple AudioContexts
+  let audioCtx = null;
+  let oscillator = null;
+  let gainNode = null;
+  let playTimeouts = [];
+  let isPlaying = false;
+  let isPaused = false;
+  let currentMode = null; // 'text' or 'patterns'
+  let resumeState = null; // { mode, index }
+
+  function ensureAudioContext(){
+    if (window._morseAudioContext && window._morseAudioContext.state !== 'closed'){
+      audioCtx = window._morseAudioContext;
+    } else {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      window._morseAudioContext = audioCtx;
+    }
+    if (!gainNode || gainNode.context !== audioCtx) {
+      gainNode = audioCtx.createGain();
+      gainNode.gain.value = Number(volumeSlider.value);
+      filterNode = audioCtx.createBiquadFilter();
+      filterNode.type = 'bandpass';
+      filterNode.frequency.value = Number(freqInput.value);
+      filterNode.Q.value = 10;
+      gainNode.connect(filterNode);
+      filterNode.connect(audioCtx.destination);
+    }
+  }
+
+  function startTone(freq){
+    ensureAudioContext();
+    if (oscillator) {
+      try { oscillator.stop(); } catch(e){}
+      oscillator.disconnect();
+    }
+    oscillator = audioCtx.createOscillator();
+    oscillator.type = 'sine';
+    oscillator.frequency.value = freq;
+    oscillator.connect(gainNode);
+    oscillator.start();
+    led.classList.add('on');
+  }
+
+  function stopTone(){
+    if (oscillator){
+      try { oscillator.stop(); } catch(e){}
+      oscillator.disconnect();
+      oscillator = null;
+    }
+    led.classList.remove('on');
+  }
+
+  function clearTimeouts(){
+    playTimeouts.forEach(id => clearTimeout(id));
+    playTimeouts = [];
+  }
+
+  function stopPlaying(){
+    isPlaying = false;
+    isPaused = false;
+    resumeState = null;
+    clearTimeouts();
+    stopTone();
+    btnPlayPauseGlobal.textContent = 'Play';
+  }
+
+  function pausePlaying(){
+    if (!isPlaying) return;
+    isPlaying = false;
+    isPaused = true;
+    clearTimeouts();
+    stopTone();
+    btnPlayPauseGlobal.textContent = 'Resume';
+  }
+
+  // Scroll helper: center selection
+  function scrollToSelection(el){
+    requestAnimationFrame(() => {
+      const start = el.selectionStart;
+
+      const div = document.createElement("div");
+      const style = getComputedStyle(el);
+
+      for (let prop of [
+        "fontFamily","fontSize","lineHeight","padding","border",
+        "whiteSpace","width"
+      ]) {
+        div.style[prop] = style[prop];
+      }
+
+      div.style.position = "absolute";
+      div.style.visibility = "hidden";
+      div.style.whiteSpace = "pre-wrap";
+      div.style.wordWrap = "break-word";
+
+      div.textContent = el.value.substring(0, start);
+
+      document.body.appendChild(div);
+      const height = div.offsetHeight;
+      document.body.removeChild(div);
+
+      el.scrollTop = height - el.clientHeight / 2;
+    });
+  }
+
+  // TEXT -> PATTERNS
+  function textToPatterns(text){
+    const words = text.split(/\s+/);
+    const outWords = [];
+    let pos = 0;
+    for (let w of words){
+      if (w === "") continue;
+      const letters = [];
+      for (let ch of w){
+        const up = ch.toUpperCase();
+        if (MORSE[up]){
+          letters.push(MORSE[up]);
+        }
+      }
+      outWords.push(letters.join(' '));
+      pos += w.length + 1;
+    }
+    return outWords.join(' / ');
+  }
+
+  // PATTERNS -> TEXT
+  function patternsToText(patterns){
+    const words = patterns.trim().split(/\s*\/\s*/);
+    const outWords = [];
+    for (let w of words){
+      if (!w.trim()) continue;
+      const letters = w.trim().split(/\s+/);
+      const chars = [];
+      for (let code of letters){
+        if (REVERSE_MORSE[code]){
+          chars.push(REVERSE_MORSE[code]);
+        }
+      }
+      outWords.push(chars.join(''));
+    }
+    return outWords.join(' ');
+  }
+
+  // PLAY TEXT
+  function playText(text, opts = {}, resume = null){
+    if (!text || !text.trim()) return;
+    if (isPlaying) stopPlaying();
+
+    ensureAudioContext();
+
+    const wpm = Math.max(5, Number(wpmInput.value) || 20);
+    const dotMs = 1200 / wpm;
+    const dashMs = dotMs * 3;
+    const intraCharGap = dotMs;
+    const interLetterGap = dotMs * 3;
+    const interWordGap = dotMs * 7;
+    const freq = Number(freqInput.value) || 650;
+
+    const chars = Array.from(text);
+    const startIndex = resume && typeof resume.index === 'number' ? resume.index : 0;
+
+    isPlaying = true;
+    isPaused = false;
+    currentMode = 'text';
+
+    function playCharAt(i){
+      if (!isPlaying || i >= chars.length){
+        stopPlaying();
+        return;
+      }
+
+      const ch = chars[i];
+      const up = ch.toUpperCase();
+      const isSpace = /\s/.test(ch);
+
+      // Highlight current character
+      textArea.focus();
+      textArea.selectionStart = i;
+      textArea.selectionEnd = i + 1;
+      scrollToSelection(textArea);
+
+      if (isSpace){
+        // word gap
+        const tId = setTimeout(() => {
+          if (!isPlaying) return;
+          resumeState = { mode: 'text', index: i + 1 };
+          playCharAt(i + 1);
+        }, interWordGap);
+        playTimeouts.push(tId);
+        return;
+      }
+
+      const pattern = MORSE[up];
+      if (!pattern){
+        // unknown char: just inter-letter gap
+        const tId = setTimeout(() => {
+          if (!isPlaying) return;
+          resumeState = { mode: 'text', index: i + 1 };
+          playCharAt(i + 1);
+        }, interLetterGap);
+        playTimeouts.push(tId);
+        return;
+      }
+
+      let offset = 0;
+      const symbols = pattern.split('');
+
+      symbols.forEach((sym, idx) => {
+        const dur = sym === '.' ? dotMs : dashMs;
+
+        // tone on
+        const tOn = setTimeout(() => {
+          if (!isPlaying) return;
+          startTone(freq);
+        }, offset);
+        playTimeouts.push(tOn);
+
+        // tone off
+        const tOff = setTimeout(() => {
+          stopTone();
+        }, offset + dur);
+        playTimeouts.push(tOff);
+
+        offset += dur;
+        if (idx < symbols.length - 1){
+          offset += intraCharGap;
+        }
+      });
+
+      // after char finished, add inter-letter gap
+      const totalCharTime = offset + interLetterGap;
+      const tNext = setTimeout(() => {
+        if (!isPlaying) return;
+        resumeState = { mode: 'text', index: i + 1 };
+        playCharAt(i + 1);
+      }, totalCharTime);
+      playTimeouts.push(tNext);
+    }
+
+    playCharAt(startIndex);
+  }
+
+  // PLAY PATTERNS: tokens from patternArea, skip '/' audio
+  function playPatterns(patternText, opts = {}, resume = null){
+    if (!patternText || !patternText.trim()) return;
+    if (isPlaying) stopPlaying();
+
+    ensureAudioContext();
+
+    const wpm = Math.max(5, Number(wpmInput.value) || 20);
+    const dotMs = 1200 / wpm;
+    const dashMs = dotMs * 3;
+    const intraCharGap = dotMs;
+    const interLetterGap = dotMs * 3;
+    const interWordGap = dotMs * 7;
+    const freq = Number(freqInput.value) || 650;
+
+    // Build tokens: each letter pattern and word separators
+    const raw = patternText;
+    const tokens = [];
+    let index = 0;
+
+    // Tokenization: split by whitespace and '/'
+    const parts = raw.split(/(\s+|\/)/);
+    for (let part of parts){
+      if (part === '') continue;
+      const start = index;
+      const end = start + part.length;
+      if (part.trim() === ''){
+        // whitespace, just advance index
+        index = end;
+        continue;
+      }
+      if (part === '/'){
+        tokens.push({ type: 'wordGap', text: part, start, end });
+      } else {
+        const trimmed = part.trim();
+        if (trimmed.length > 0){
+          tokens.push({ type: 'letter', text: trimmed, start, end });
+        }
+      }
+      index = end;
+    }
+
+    const startIndex = resume && typeof resume.index === 'number' ? resume.index : 0;
+
+    isPlaying = true;
+    isPaused = false;
+    currentMode = 'patterns';
+
+    function playTokenAt(i){
+      if (!isPlaying || i >= tokens.length){
+        stopPlaying();
+        return;
+      }
+
+      const token = tokens[i];
+
+      // Highlight in patterns textarea
+      patternArea.focus();
+      patternArea.selectionStart = token.start;
+      patternArea.selectionEnd = token.end;
+      scrollToSelection(patternArea);
+
+      if (token.type === 'wordGap'){
+        // skip audio, just wait inter-word gap
+        const tId = setTimeout(() => {
+          if (!isPlaying) return;
+          resumeState = { mode: 'patterns', index: i + 1 };
+          playTokenAt(i + 1);
+        }, interWordGap);
+        playTimeouts.push(tId);
+        return;
+      }
+
+      const pattern = token.text;
+      const symbols = pattern.split('');
+      let offset = 0;
+
+      symbols.forEach((sym, idx) => {
+        if (sym !== '.' && sym !== '-') return;
+        const dur = sym === '.' ? dotMs : dashMs;
+
+        const tOn = setTimeout(() => {
+          if (!isPlaying) return;
+          startTone(freq);
+        }, offset);
+        playTimeouts.push(tOn);
+
+        const tOff = setTimeout(() => {
+          stopTone();
+        }, offset + dur);
+        playTimeouts.push(tOff);
+
+        offset += dur;
+        if (idx < symbols.length - 1){
+          offset += intraCharGap;
+        }
+      });
+
+      const totalCharTime = offset + interLetterGap;
+      const tNext = setTimeout(() => {
+        if (!isPlaying) return;
+        resumeState = { mode: 'patterns', index: i + 1 };
+        playTokenAt(i + 1);
+      }, totalCharTime);
+      playTimeouts.push(tNext);
+    }
+
+    playTokenAt(startIndex);
+  }
+
+  // GLOBAL PLAY/PAUSE/STOP
+  function startFromCurrentMode(){
+    if (currentMode === 'patterns'){
+      playPatterns(patternArea.value, {highlight:true}, resumeState && resumeState.mode === 'patterns' ? resumeState : null);
+    } else {
+      currentMode = 'text';
+      playText(textArea.value, {highlight:true}, resumeState && resumeState.mode === 'text' ? resumeState : null);
+    }
+    btnPlayPauseGlobal.textContent = 'Pause';
+  }
+
+  btnPlayPauseGlobal.addEventListener('click', () => {
+    if (!isPlaying && !isPaused){
+      currentMode = currentMode || 'text';
+      startFromCurrentMode();
+    } else if (isPlaying){
+      pausePlaying();
+    } else if (isPaused){
+      startFromCurrentMode();
+    }
+  });
+
+  btnStopGlobal.addEventListener('click', () => {
+    stopPlaying();
+  });
+
+  btnPlayText.addEventListener('click', () => {
+    stopPlaying();
+    currentMode = 'text';
+    playText(textArea.value, {highlight:true});
+    btnPlayPauseGlobal.textContent = 'Pause';
+  });
+
+  btnPlayPatterns.addEventListener('click', () => {
+    stopPlaying();
+    currentMode = 'patterns';
+    playPatterns(patternArea.value, {highlight:true});
+    btnPlayPauseGlobal.textContent = 'Pause';
+  });
+
+  // UI: sliders
+  wpmInput.addEventListener('input', () => {
+    wpmValue.textContent = wpmInput.value;
+  });
+
+  freqInput.addEventListener('input', () => {
+    freqValue.textContent = freqInput.value;
+  });
+
+  volumeSlider.addEventListener('input', () => {
+    volValue.textContent = Number(volumeSlider.value).toFixed(2);
+    if (gainNode){
+      gainNode.gain.value = Number(volumeSlider.value);
+    }
+  });
+
+  fontSlider.addEventListener('input', () => {
+    const size = fontSlider.value + 'px';
+    textArea.style.fontSize = size;
+    patternArea.style.fontSize = size;
+    fontValue.textContent = size;
+  });
+
+  // Clipboard helpers
+  async function copyTextFrom(el){
+    try {
+      await navigator.clipboard.writeText(el.value);
+    } catch(e){
+      // fallback
+      el.select();
+      document.execCommand('copy');
+    }
+  }
+
+  async function pasteTextInto(el){
+    try {
+      const txt = await navigator.clipboard.readText();
+      const start = el.selectionStart;
+      const end = el.selectionEnd;
+      const val = el.value;
+      el.value = val.slice(0, start) + txt + val.slice(end);
+      el.selectionStart = el.selectionEnd = start + txt.length;
+    } catch(e){
+      alert('Clipboard paste is not available in this browser.');
+    }
+  }
+
+  // Undo/redo via execCommand (best-effort)
+  function undoIn(el){
+    el.focus();
+    document.execCommand('undo');
+  }
+  function redoIn(el){
+    el.focus();
+    document.execCommand('redo');
+  }
+
+  // Import / Export helpers
+  function exportText(filename, content){
+    const blob = new Blob([content], {type: 'text/plain'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // Text panel buttons
+  btnCopyText.addEventListener('click', () => copyTextFrom(textArea));
+  btnPasteText.addEventListener('click', () => pasteTextInto(textArea));
+  btnUndoText.addEventListener('click', () => undoIn(textArea));
+  btnRedoText.addEventListener('click', () => redoIn(textArea));
+  btnClearText.addEventListener('click', () => { textArea.value = ''; });
+
+  btnConvertTextToPatterns.addEventListener('click', () => {
+    patternArea.value = textToPatterns(textArea.value);
+  });
+
+  btnImportText.addEventListener('click', () => {
+    fileInputText.value = '';
+    fileInputText.click();
+  });
+
+  fileInputText.addEventListener('change', () => {
+    const file = fileInputText.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      textArea.value = e.target.result;
+    };
+    reader.readAsText(file);
+  });
+
+  btnExportText.addEventListener('click', () => {
+    exportText('morse_text.txt', textArea.value);
+  });
+
+  // Patterns panel buttons
+  btnCopyPatterns.addEventListener('click', () => copyTextFrom(patternArea));
+  btnPastePatterns.addEventListener('click', () => pasteTextInto(patternArea));
+  btnUndoPatterns.addEventListener('click', () => undoIn(patternArea));
+  btnRedoPatterns.addEventListener('click', () => redoIn(patternArea));
+  btnClearPatterns.addEventListener('click', () => { patternArea.value = ''; });
+
+  btnConvertPatternsToText.addEventListener('click', () => {
+    textArea.value = patternsToText(patternArea.value);
+  });
+
+  btnImportPatterns.addEventListener('click', () => {
+    fileInputPatterns.value = '';
+    fileInputPatterns.click();
+  });
+
+  fileInputPatterns.addEventListener('change', () => {
+    const file = fileInputPatterns.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      patternArea.value = e.target.result;
+    };
+    reader.readAsText(file);
+  });
+
+  btnExportPatterns.addEventListener('click', () => {
+    exportText('morse_patterns.txt', patternArea.value);
+  });
+
+  // Initial font size
+  (function init(){
+    const size = fontSlider.value + 'px';
+    textArea.style.fontSize = size;
+    patternArea.style.fontSize = size;
+    fontValue.textContent = size;
+    wpmValue.textContent = wpmInput.value;
+    freqValue.textContent = freqInput.value;
+    volValue.textContent = Number(volumeSlider.value).toFixed(2);
+  })();
+</script>
+</body>
+</html>
